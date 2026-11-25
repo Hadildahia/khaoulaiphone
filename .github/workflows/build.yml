@@ -1,0 +1,43 @@
+name: Build Windows app
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller==6.11.1
+
+      - name: Build the .exe
+        run: >
+          pyinstaller --onefile --windowed --name iPhonePhotoTransfer
+          --hidden-import win32timezone
+          --hidden-import win32comext.shell.shell
+          --hidden-import win32comext.propsys.pscon
+          main.py
+
+      - name: Save the .exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: iPhonePhotoTransfer
+          path: dist/iPhonePhotoTransfer.exe
+
+      - name: Publish a release when a version tag is pushed
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/iPhonePhotoTransfer.exe
